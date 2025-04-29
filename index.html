@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>瀑布流布局页面</title>
+    <style>
+      .column {
+            width: calc(50% - 0.5rem);
+        }
+
+        @media (max-width: 768px) {
+          .column {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <div class="flex flex-wrap -mx-2">
+            <div class="column px-2">
+                <div id="column1" class="space-y-4"></div>
+            </div>
+            <div class="column px-2">
+                <div id="column2" class="space-y-4"></div>
+            </div>
+        </div>
+        <div id="loading" class="text-center mt-4 hidden">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+        </div>
+    </div>
+    <div id="refresh" class="text-center py-2 bg-gray-200 hidden">
+        正在刷新...
+    </div>
+    <script>
+        const column1 = document.getElementById('column1');
+        const column2 = document.getElementById('column2');
+        const loading = document.getElementById('loading');
+        const refresh = document.getElementById('refresh');
+
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        function createItem(item) {
+            const card = document.createElement('div');
+            card.classList.add('bg-white', 'rounded-lg', 'overflow-hidden', 'shadow-md', 'transition', 'duration-300', 'hover:shadow-lg');
+
+            if (item.type === 'image') {
+                const img = document.createElement('img');
+                img.src = item.imageUrl;
+                img.alt = item.title;
+                img.classList.add('w-full', 'h-auto');
+                card.appendChild(img);
+            } else if (item.type === 'video') {
+                const video = document.createElement('video');
+                video.src = item.videoUrl;
+                video.controls = true;
+                video.classList.add('w-full', 'h-auto');
+                card.appendChild(video);
+            }
+
+            const title = document.createElement('h3');
+            title.textContent = item.title;
+            title.classList.add('p-4', 'text-lg', 'font-bold');
+            card.appendChild(title);
+
+            const content = document.createElement('p');
+            content.textContent = item.content;
+            content.classList.add('p-4', 'text-gray-600');
+            card.appendChild(content);
+
+            return card;
+        }
+
+        function appendItems(items) {
+            items.forEach((item, index) => {
+                const targetColumn = index % 2 === 0? column1 : column2;
+                targetColumn.appendChild(createItem(item));
+            });
+        }
+
+        function fetchData(page) {
+            loading.classList.remove('hidden');
+            setTimeout(() => {
+                const mockData = Array.from({ length: itemsPerPage }, () => {
+                    return {
+                        title: `标题 ${Math.floor(Math.random() * 100)}`,
+                        type: Math.random() > 0.5? 'image' : 'video',
+                        content: '这是一段示例内容。',
+                        imageUrl: `https://picsum.photos/200/300?random=${Math.random()}`,
+                        videoUrl: 'https://videos.pexels.com/video-files/30958081/13235234_1080_1920_60fps.mp4',
+                    };
+                });
+                appendItems(mockData);
+                loading.classList.add('hidden');
+            }, 1000);
+        }
+
+        function onScroll() {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                currentPage++;
+                fetchData(currentPage);
+            }
+        }
+
+        function onRefresh() {
+            refresh.classList.remove('hidden');
+            column1.innerHTML = '';
+            column2.innerHTML = '';
+            currentPage = 1;
+            setTimeout(() => {
+                fetchData(currentPage);
+                refresh.classList.add('hidden');
+            }, 1000);
+        }
+
+        window.addEventListener('scroll', onScroll);
+        document.addEventListener('touchmove', onScroll);
+
+        const refreshThreshold = 50;
+        let startY = 0;
+        let isDragging = false;
+
+        document.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                const deltaY = e.touches[0].clientY - startY;
+                if (deltaY > refreshThreshold && window.scrollY === 0) {
+                    onRefresh();
+                    isDragging = false;
+                }
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        fetchData(currentPage);
+    </script>
+</body>
+
+</html>    
